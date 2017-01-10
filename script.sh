@@ -253,6 +253,9 @@ esac
   read websitename
   groupadd $username
   adduser --home /var/www/$username/$websitename --ingroup $username $username
+  mkdir /home/$username/.ssh
+  mv /root/.ssh/authorized_keys /home/$username/.ssh/
+  chown -R $username:$username /home/$username/.ssh/
   mkdir /var/www/$username/$websitename/www
   chown -R $username:$username /var/www/$username/$websitename
   echo -e "${GREEN}User, group and home folder were succesfully created!
