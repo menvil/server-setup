@@ -103,7 +103,7 @@ MYSQL=$(dpkg-query -W -f='${Status}' mariadb-server 2>/dev/null | grep -c "ok in
   if [ $(dpkg-query -W -f='${Status}' mariadb-server 2>/dev/null | grep -c "ok installed") -eq 0 ];
   then
     echo -e "${YELLOW}Installing mariadb-server${NC}"
-    apt-get install mariadb-server --yes;
+    apt-get install mariadb-server mariadb-client --yes;
     systemctl start mariadb;
     mysql_secure_installation;
     elif [ $(dpkg-query -W -f='${Status}' mariadb-server 2>/dev/null | grep -c "ok installed") -eq 1 ];
@@ -260,3 +260,205 @@ esac
   Group: $username
   Home folder: /var/www/$username/$websitename
   Website folder: /var/www/$username/$websitename/www${NC}"
+  
+
+#downloading WordPress, unpacking, adding basic pack of plugins, creating .htaccess with optimal & secure configuration
+echo -e "${YELLOW}On this step we going to download latest version of WordPress with EN or RUS language, set optimal & secure configuration and add basic set of plugins...${NC}"
+
+read -r -p "Do you want to install WordPress & automatically set optimal and secure configuration with basic set of plugins? [y/N] " response
+case $response in
+    [yY][eE][sS]|[yY]) 
+
+  echo -e "${GREEN}Please, choose WordPress language you need (set RUS or ENG): "
+  read wordpress_lang
+
+  if [ "$wordpress_lang" == 'RUS' ];
+    then
+    wget https://ru.wordpress.org/latest-ru_RU.zip -O /tmp/$wordpress_lang.zip
+  else
+    wget https://wordpress.org/latest.zip -O /tmp/$wordpress_lang.zip
+  fi
+
+  echo -e "Unpacking WordPress into website home directory..."
+  sleep 5
+  unzip /tmp/$wordpress_lang.zip -d /var/www/$username/$websitename/www/
+  mv /var/www/$username/$websitename/www/wordpress/* /var/www/$username/$websitename/www
+  rm -rf /var/www/$username/$websitename/www/wordpress
+  rm /tmp/$wordpress_lang.zip
+  mkdir /var/www/$username/$websitename/www/wp-content/uploads
+  chmod -R 777 /var/www/$username/$websitename/www/wp-content/uploads
+
+  echo -e "${RED}WordPress and plugins were not downloaded & installed. You can do this manually or re run this script.${NC}"
+
+        ;;
+esac
+
+
+#cration of robots.txt
+echo -e "${YELLOW}Creation of robots.txt file...${NC}"
+sleep 3
+cat >/var/www/$username/$websitename/www/robots.txt <<EOL
+User-agent: *
+Disallow: /cgi-bin
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /wp-content/
+Disallow: /wp-content/plugins/
+Disallow: /wp-content/themes/
+Disallow: /trackback
+Disallow: */trackback
+Disallow: */*/trackback
+Disallow: */*/feed/*/
+Disallow: */feed
+Disallow: /*?*
+Disallow: /tag
+Disallow: /?author=*
+EOL
+
+echo -e "${GREEN}File robots.txt was succesfully created!
+Setting correct rights on user's home directory and 755 rights on robots.txt${NC}"
+sleep 3
+
+chmod 755 /var/www/$username/$websitename/www/robots.txt
+
+
+#creating of swap
+echo -e "On next step we going to create SWAP (it should be your RAM x2)..."
+
+read -r -p "Do you need SWAP? [y/N] " response
+case $response in
+    [yY][eE][sS]|[yY]) 
+
+  RAM="`free -m | grep Mem | awk '{print $2}'`"
+  swap_allowed=$(($RAM * 2))
+  swap=$swap_allowed"M"
+  fallocate -l $swap /var/swap.img
+  chmod 600 /var/swap.img
+  mkswap /var/swap.img
+  swapon /var/swap.img
+
+  echo -e "${GREEN}RAM detected: $RAM
+  Swap was created: $swap${NC}"
+  sleep 5
+
+        ;;
+    *)
+
+  echo -e "${RED}You didn't create any swap for faster system working. You can do this manually or re run this script.${NC}"
+
+        ;;
+esac
+
+
+
+echo -e "${GREEN}Configuring fail2ban...${NC}"
+sleep 3
+cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.conf-old
+cat >/etc/fail2ban/jail.conf <<EOL
+[DEFAULT]
+
+ignoreip = 127.0.0.1/8
+ignorecommand =
+bantime  = 1200
+findtime = 1200
+maxretry = 3
+backend = auto
+usedns = warn
+destemail = $domain_email
+sendername = Fail2Ban
+sender = fail2ban@localhost
+banaction = iptables-multiport
+mta = sendmail
+
+# Default protocol
+protocol = tcp
+# Specify chain where jumps would need to be added in iptables-* actions
+chain = INPUT
+# ban & send an e-mail with whois report to the destemail.
+action_mw = %(banaction)s[name=%(__name__)s, port="%(port)s", protocol="%(protocol)s", chain="%(chain)s"]
+              %(mta)s-whois[name=%(__name__)s, dest="%(destemail)s", protocol="%(protocol)s", chain="%(chain)s", sendername="%(sendername)s"]
+action = %(action_mw)s
+
+[ssh]
+enabled  = true
+port     = ssh
+filter   = sshd
+logpath  = /var/log/auth.log
+maxretry = 5
+
+[ssh-ddos]
+enabled  = true
+port     = ssh
+filter   = sshd-ddos
+logpath  = /var/log/auth.log
+maxretry = 5
+
+EOL
+
+service fail2ban restart
+
+echo -e "${GREEN}fail2ban configuration finished!
+fail2ban service was restarted, default confige backuped at /etc/fail2ban/jail.conf-old
+Jails were set for: ssh bruteforce, ssh ddos, apache overflows${NC}"
+
+sleep 5
+
+service mysql restart
+
+echo -e "${GREEN}Services succesfully restarted!${NC}"
+sleep 3
+
+echo -e "${GREEN}Adding user & database for WordPress, setting wp-config.php...${NC}"
+echo -e "Please, set username for database: "
+read db_user
+echo -e "Please, set password for database user: "
+read db_pass
+
+mysql -u root -p <<EOF
+CREATE USER '$db_user'@'localhost' IDENTIFIED BY '$db_pass';
+CREATE DATABASE IF NOT EXISTS $db_user;
+GRANT ALL PRIVILEGES ON $db_user.* TO '$db_user'@'localhost';
+ALTER DATABASE $db_user CHARACTER SET utf8 COLLATE utf8_general_ci;
+EOF
+
+cat >/var/www/$username/$websitename/www/wp-config.php <<EOL
+<?php
+
+define('DB_NAME', '$db_user');
+
+define('DB_USER', '$db_user');
+
+define('DB_PASSWORD', '$db_pass');
+
+define('DB_HOST', 'localhost');
+
+define('DB_CHARSET', 'utf8');
+
+define('DB_COLLATE', '');
+
+define('AUTH_KEY',         '$db_user');
+define('SECURE_AUTH_KEY',  '$db_user');
+define('LOGGED_IN_KEY',    '$db_user');
+define('NONCE_KEY',        '$db_user');
+define('AUTH_SALT',        '$db_user');
+define('SECURE_AUTH_SALT', '$db_user');
+define('LOGGED_IN_SALT',   '$db_user');
+define('NONCE_SALT',       '$db_user');
+
+\$table_prefix  = 'wp_';
+
+define('WP_DEBUG', false);
+
+if ( !defined('ABSPATH') )
+	define('ABSPATH', dirname(__FILE__) . '/');
+
+require_once(ABSPATH . 'wp-settings.php');
+EOL
+
+chown -R $username:$username /var/www/$username
+echo -e "${GREEN}Database user, database and wp-config.php were succesfully created & configured!${NC}"
+sleep 3
+echo -e "Installation & configuration succesfully finished.
+e-mail: menvil.menvil@gmail.com
+Bye!"  
+  
