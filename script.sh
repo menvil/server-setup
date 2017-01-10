@@ -104,6 +104,8 @@ MYSQL=$(dpkg-query -W -f='${Status}' mariadb-server 2>/dev/null | grep -c "ok in
   then
     echo -e "${YELLOW}Installing mariadb-server${NC}"
     apt-get install mariadb-server --yes;
+    systemctl start mariadb;
+    mysql_secure_installation;
     elif [ $(dpkg-query -W -f='${Status}' mariadb-server 2>/dev/null | grep -c "ok installed") -eq 1 ];
     then
       echo -e "${GREEN}mariadb-server is installed!${NC}"
@@ -159,6 +161,46 @@ PHP7CURL=$(dpkg-query -W -f='${Status}' php7.0-curl 2>/dev/null | grep -c "ok in
       echo -e "${GREEN}php7.0-curl is installed!${NC}"
   fi
 
+PHP7GD=$(dpkg-query -W -f='${Status}' php7.0-gd 2>/dev/null | grep -c "ok installed")
+  if [ $(dpkg-query -W -f='${Status}' php7.0-gd 2>/dev/null | grep -c "ok installed") -eq 0 ];
+  then
+    echo -e "${YELLOW}Installing php7.0-gd${NC}"
+    apt-get install php7.0-gd --yes;
+    elif [ $(dpkg-query -W -f='${Status}' php7.0-gd 2>/dev/null | grep -c "ok installed") -eq 1 ];
+    then
+      echo -e "${GREEN}php7.0-gd is installed!${NC}"
+  fi
+
+PHP7CLI=$(dpkg-query -W -f='${Status}' php7.0-cli 2>/dev/null | grep -c "ok installed")
+  if [ $(dpkg-query -W -f='${Status}' php7.0-cli 2>/dev/null | grep -c "ok installed") -eq 0 ];
+  then
+    echo -e "${YELLOW}Installing php7.0-cli${NC}"
+    apt-get install php7.0-cli --yes;
+    elif [ $(dpkg-query -W -f='${Status}' php7.0-cli 2>/dev/null | grep -c "ok installed") -eq 1 ];
+    then
+      echo -e "${GREEN}php7.0-cli is installed!${NC}"
+  fi
+
+PHP7ZIP=$(dpkg-query -W -f='${Status}' php7.0-zip 2>/dev/null | grep -c "ok installed")
+  if [ $(dpkg-query -W -f='${Status}' php7.0-zip 2>/dev/null | grep -c "ok installed") -eq 0 ];
+  then
+    echo -e "${YELLOW}Installing php7.0-zip${NC}"
+    apt-get install php7.0-zip --yes;
+    elif [ $(dpkg-query -W -f='${Status}' php7.0-zip 2>/dev/null | grep -c "ok installed") -eq 1 ];
+    then
+      echo -e "${GREEN}php7.0-zip is installed!${NC}"
+  fi
+
+PHP7BZ2=$(dpkg-query -W -f='${Status}' php7.0-bz2 2>/dev/null | grep -c "ok installed")
+  if [ $(dpkg-query -W -f='${Status}' php7.0-bz2 2>/dev/null | grep -c "ok installed") -eq 0 ];
+  then
+    echo -e "${YELLOW}Installing php7.0-bz2${NC}"
+    apt-get install php7.0-bz2 --yes;
+    elif [ $(dpkg-query -W -f='${Status}' php7.0-bz2 2>/dev/null | grep -c "ok installed") -eq 1 ];
+    then
+      echo -e "${GREEN}php7.0-bz2 is installed!${NC}"
+  fi
+
 WGET=$(dpkg-query -W -f='${Status}' wget 2>/dev/null | grep -c "ok installed")
   if [ $(dpkg-query -W -f='${Status}' wget 2>/dev/null | grep -c "ok installed") -eq 0 ];
   then
@@ -203,7 +245,7 @@ esac
 
 
 #creating user
-	echo -e "${YELLOW}Adding separate user & creating website home folder for secure running of your website...${NC}"
+  echo -e "${YELLOW}Adding separate user & creating website home folder for secure running of your website...${NC}"
 
   echo -e "${YELLOW}Please, enter new username: ${NC}"
   read username
