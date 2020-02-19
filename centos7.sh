@@ -35,6 +35,7 @@ yum install mc -y;
 echo -e "${YELLOW}Installing htop${NC}"
 wget dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/epel-release-7-12.noarch.rpm;
 rpm -ihv epel-release-7-12.noarch.rpm;
+yum install htop -y;
 
 #WGET
 echo -e "${YELLOW}Installing wget${NC}"
