@@ -27,6 +27,10 @@ yum install nano -y;
 echo -e "${YELLOW}Installing zip${NC}"
 yum install zip -y;
 
+#UNZIP
+echo -e "${YELLOW}Installing unzip${NC}"
+yum install unzip -y;
+
 #MC
 echo -e "${YELLOW}Installing mc${NC}"
 yum install mc -y;
