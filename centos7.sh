@@ -41,6 +41,9 @@ wget dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/epel-release-7-12.noarch.
 rpm -ihv epel-release-7-12.noarch.rpm;
 yum install htop -y;
 
+#NCDU
+yum install ncdu -y;
+
 #WGET
 echo -e "${YELLOW}Installing wget${NC}"
 yum install wget -y;
